@@ -1,57 +1,41 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class JwtUtils {
   constructor(private readonly jwtService: JwtService) {}
 
-  /**
-   * Generates a standard JWT Access Token
-   */
-  generateToken(payload: object, expiresIn: string, secret: string): string {
-    this.validateConfig(expiresIn, secret);
-
-    const options: JwtSignOptions = {
-      secret,
-      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
-    };
-
-    return this.jwtService.sign(payload, options);
-  }
-
-  /**
-   * Generates a Refresh Token
-   */
-  generateRefreshToken(
+  async generateToken(
     payload: object,
-    expiresIn: string,
+    expiresIn: number,
     secret: string,
-  ): string {
+  ): Promise<string> {
     this.validateConfig(expiresIn, secret);
-
-    const options: JwtSignOptions = {
-      secret,
-      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
-    };
-
-    return this.jwtService.sign(payload, options);
+    return this.jwtService.signAsync(payload, { secret, expiresIn });
   }
 
-  /**
-   * Verifies a token against a specific secret
-   */
-  verifyToken<T extends object>(token: string, secret: string): T {
+  async generateRefreshToken(
+    payload: object,
+    expiresIn: number,
+    secret: string,
+  ): Promise<string> {
+    this.validateConfig(expiresIn, secret);
+    return this.jwtService.signAsync(payload, { secret, expiresIn });
+  }
+
+  async verifyToken<T extends object>(
+    token: string,
+    secret: string,
+  ): Promise<T> {
     try {
-      return this.jwtService.verify<T>(token, { secret });
+      return await this.jwtService.verifyAsync<T>(token, { secret });
     } catch {
-      // Omitting (error) entirely is the safest way to avoid linting issues
-      // if you aren't using the error object itself.
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
 
-  private validateConfig(expiresIn: string, secret: string): void {
-    if (!expiresIn || !secret) {
+  private validateConfig(expiresIn: number, secret: string): void {
+    if (!expiresIn || expiresIn <= 0 || !secret) {
       throw new Error(
         'JWT Configuration missing: secret or expiresIn is undefined',
       );
