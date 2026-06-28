@@ -5,7 +5,9 @@ import {
   MinLength,
   MaxLength,
   IsStrongPassword,
+  IsEnum,
 } from 'class-validator';
+import { Gender, UserRole } from '../../enums/post-type';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'Jane Doe' })
@@ -26,4 +28,10 @@ export class CreateUserDto {
   @MaxLength(100)
   @IsStrongPassword()
   password: string;
+
+  @IsEnum(Gender)
+  gender: string;
+
+  @IsEnum(UserRole)
+  role: string;
 }

@@ -7,6 +7,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Post } from './Post.entity';
+import { User } from './User.entity';
 
 @Entity('likes')
 @Unique(['userId', 'postId'])
@@ -14,8 +15,8 @@ export class Like {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  userId: number;
+  @Column({ type: 'uuid' })
+  userId: string;
 
   @Column()
   postId: number;
@@ -23,4 +24,8 @@ export class Like {
   @ManyToOne(() => Post, (post) => post.likes, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'postId' })
   post: Post;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user: User;
 }

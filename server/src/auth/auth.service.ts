@@ -53,6 +53,7 @@ export class AuthService {
       this.configService.getOrThrow<string>(ENV_VARIABLES.JWT_REFRESH_SECRET),
     );
 
+    console.log('acc', accessToken, refreshToken);
     return {
       accessToken,
       refreshToken,
@@ -61,31 +62,38 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const refreshSecret = this.configService.getOrThrow<string>(
-      ENV_VARIABLES.JWT_REFRESH_SECRET,
-    );
+    try {
+      const refreshSecret = this.configService.getOrThrow<string>(
+        ENV_VARIABLES.JWT_REFRESH_SECRET,
+      );
+      const payload = await this.jwtUtils.verifyToken<RefreshTokenPayload>(
+        refreshToken,
+        refreshSecret,
+      );
 
-    const payload = await this.jwtUtils.verifyToken<RefreshTokenPayload>(
-      refreshToken,
-      refreshSecret,
-    );
+      const user = await this.userService.findOne({ id: payload.sub });
+      if (!user) throw new UnauthorizedException('User not found');
 
-    const user = await this.userService.findOne({ id: payload.sub });
-    if (!user) throw new UnauthorizedException('User not found');
+      const newAccessToken = await this.jwtUtils.generateToken(
+        { sub: user.id, email: user.email },
+        15 * 60, // 15 minutes in seconds
+        this.configService.getOrThrow<string>(ENV_VARIABLES.JWT_SECRET),
+      );
 
-    const newAccessToken = await this.jwtUtils.generateToken(
-      { sub: user.id, email: user.email },
-      15 * 60, // 15 minutes in seconds
-      this.configService.getOrThrow<string>(ENV_VARIABLES.JWT_SECRET),
-    );
+      const newRefreshToken = await this.jwtUtils.generateRefreshToken(
+        { sub: user.id },
+        7 * 24 * 60 * 60, // 7 days in seconds
+        refreshSecret,
+      );
 
-    const newRefreshToken = await this.jwtUtils.generateRefreshToken(
-      { sub: user.id },
-      7 * 24 * 60 * 60, // 7 days in seconds
-      refreshSecret,
-    );
-
-    return { newAccessToken, newRefreshToken };
+      return { newAccessToken, newRefreshToken };
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('REFRESH_TOKEN_VERIFY_ERROR:', errorMessage);
+      throw new UnauthorizedException(
+        'Token verification failed: ' + errorMessage,
+      );
+    }
   }
 
   logout() {

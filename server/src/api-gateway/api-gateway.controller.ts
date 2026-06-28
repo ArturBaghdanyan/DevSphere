@@ -2,11 +2,10 @@ import {
   Body,
   Controller,
   Post,
-  Req,
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto } from '../../common/dtos/user/user.create.dto';
 import { UserLoginDto } from '../../common/dtos/user/user.login.dto';
@@ -21,44 +20,19 @@ export class ApiGatewayController {
   }
 
   @Post('login')
-  async login(
-    @Body() loginDto: UserLoginDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async login(@Body() loginDto: UserLoginDto) {
     const { accessToken, refreshToken, user } =
       await this.authService.login(loginDto);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return { access_token: accessToken, user };
+    return { access_token: accessToken, refresh_token: refreshToken, user };
   }
 
   @Post('refresh')
-  async refresh(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const cookies = req.cookies as Record<string, string | undefined>;
-    const token = cookies?.refreshToken;
-
-    if (!token) throw new UnauthorizedException('No refresh token found');
-
-    const { newAccessToken, newRefreshToken } =
-      await this.authService.refresh(token);
-
-    res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return { access_token: newAccessToken };
+  async refresh(@Body('refreshToken') refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+    return await this.authService.refresh(refreshToken);
   }
 
   @Post('logout')

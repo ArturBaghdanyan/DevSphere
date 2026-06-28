@@ -16,8 +16,8 @@ export class Comments {
   @Column({ type: 'text' })
   text: string;
 
-  @Column()
-  userId: number;
+  @Column({ type: 'uuid' })
+  userId: string;
 
   @Column()
   postId: number;
