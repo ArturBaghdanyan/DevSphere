@@ -1,17 +1,25 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
 } from 'class-validator';
 import { PostType } from '../../enums/post-type';
+import { CreatePostsDto } from './posts.create.dto';
 
-export class CreatePostDto {
+export class UpdatePostsDto extends PartialType(
+  PickType(CreatePostsDto, ['title', 'description', 'content_type'] as const),
+) {
   @ApiProperty({})
   @IsNumber()
-  userId: number;
+  id: number;
+
+  @ApiProperty({})
+  @IsUUID()
+  userId: string;
 
   @ApiProperty({
     enum: PostType,

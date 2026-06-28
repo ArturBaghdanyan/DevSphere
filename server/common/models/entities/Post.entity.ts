@@ -13,13 +13,11 @@ import { Like } from './Like.entity';
 
 @Entity('posts')
 export class Post {
-  @ApiProperty({ example: 1, description: 'Unique identifier' })
   @PrimaryGeneratedColumn()
   postId: number;
 
-  @ApiProperty({ example: 1, description: 'Unique identifier' })
-  @Column()
-  userId: number;
+  @Column({ type: 'uuid', name: 'userId', nullable: false })
+  userId: string;
 
   @ApiProperty({
     enum: PostType,

@@ -20,6 +20,9 @@ services:
       db:
         condition: service_healthy # Wait for DB to be fully ready
     env_file:
-      - .env
+      - .env # This tells Docker to load your variables from the file
+    # OR define it manually under environment:
+    environment:
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
     ports:
       - '3000:3000'

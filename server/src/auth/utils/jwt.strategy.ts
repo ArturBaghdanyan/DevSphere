@@ -14,23 +14,25 @@ interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
     super({
-      jwtFromRequest: (req: Request): string | null => {
-        let token: string | null = null;
-        const cookies = req?.cookies as Record<string, string> | undefined;
-        if (cookies) {
-          token = cookies['access_token'] ?? null;
-        }
-        return token || ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-      },
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        (req: Request) => {
+          const cookieToken = req?.cookies?.access_token;
+          return typeof cookieToken === 'string' ? cookieToken : null;
+        },
+      ]),
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>(ENV_VARIABLES.JWT_SECRET),
     });
   }
 
   validate(payload: JwtPayload) {
-    if (!payload) {
+    if (!payload?.sub) {
       throw new UnauthorizedException();
     }
-    return { userId: payload.sub, email: payload.email };
+    return {
+      id: payload.sub,
+      email: payload.email,
+    };
   }
 }
